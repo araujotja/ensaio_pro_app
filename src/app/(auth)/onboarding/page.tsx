@@ -364,9 +364,19 @@ function OnboardingContent() {
                   onChange={(e) => setOrg({ name: e.target.value })}
                 />
               </div>
-              <button className="btn-primary w-full justify-center" onClick={handleOrgNext}>
-                Continuar
-              </button>
+              <div className="flex gap-2">
+                {!isAuthed && (
+                  <button
+                    className="btn-secondary"
+                    onClick={() => { setError(''); setStep('account') }}
+                  >
+                    ← Voltar
+                  </button>
+                )}
+                <button className="btn-primary flex-1 justify-center" onClick={handleOrgNext}>
+                  Continuar
+                </button>
+              </div>
             </div>
           )}
 
@@ -405,13 +415,22 @@ function OnboardingContent() {
                 />
                 <span className="text-sm text-stone-700">Modo Igreja</span>
               </label>
-              <button
-                className="btn-primary w-full justify-center"
-                onClick={handleGroupSubmit}
-                disabled={loading}
-              >
-                {loading ? 'Criando…' : 'Criar e entrar'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  className="btn-secondary"
+                  onClick={() => { setError(''); setStep('org') }}
+                  disabled={loading}
+                >
+                  ← Voltar
+                </button>
+                <button
+                  className="btn-primary flex-1 justify-center"
+                  onClick={handleGroupSubmit}
+                  disabled={loading}
+                >
+                  {loading ? 'Criando…' : 'Criar e entrar'}
+                </button>
+              </div>
             </div>
           )}
         </div>

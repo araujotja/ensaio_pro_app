@@ -55,7 +55,7 @@ export default async function TaskDetailPage({
   const isLeader = (REVIEWER_ROLES as readonly string[]).includes(membership.role)
 
   return (
-    <div className="p-6 max-w-2xl space-y-6">
+    <div className="p-4 md:p-6 max-w-2xl space-y-6">
       <div>
         <Link
           href={`/app/groups/${groupId}/tasks`}

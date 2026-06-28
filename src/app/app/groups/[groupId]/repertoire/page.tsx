@@ -33,13 +33,13 @@ export default async function RepertoirePage({
   ])
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Repertório</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-stone-900">Repertório</h1>
           <p className="text-sm text-stone-500 mt-0.5">{group.name}</p>
         </div>
-        <Link href={`/app/groups/${groupId}/repertoire/new`} className="btn-primary">
+        <Link href={`/app/groups/${groupId}/repertoire/new`} className="btn-primary self-start sm:self-auto">
           <Plus className="h-4 w-4" />
           Nova peça
         </Link>

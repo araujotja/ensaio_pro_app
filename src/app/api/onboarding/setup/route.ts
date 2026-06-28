@@ -12,8 +12,6 @@ const bodySchema = z.object({
   modoIgreja: z.boolean(),
 })
 
-// DB-based rate limit: max 3 group creations per user per hour.
-// Works correctly across Vercel serverless instances (no in-memory state).
 async function checkSetupRateLimit(service: ReturnType<typeof createServiceClient>, userId: string): Promise<boolean> {
   const windowStart = new Date(Date.now() - 60 * 60 * 1000).toISOString()
   const { count } = await service
@@ -27,6 +25,12 @@ async function checkSetupRateLimit(service: ReturnType<typeof createServiceClien
 }
 
 export async function POST(request: NextRequest) {
+  // Guard: service role key must be set
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[setup] SUPABASE_SERVICE_ROLE_KEY is not set')
+    return NextResponse.json({ error: 'Configuração do servidor incompleta (chave de serviço ausente)' }, { status: 500 })
+  }
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -37,15 +41,22 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null)
+  if (!body) {
+    return NextResponse.json({ error: 'Body inválido' }, { status: 400 })
+  }
+
   const parsed = bodySchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
+    console.error('[setup] validation failed:', parsed.error.issues)
+    return NextResponse.json(
+      { error: `Dados inválidos: ${parsed.error.issues.map((i) => i.message).join(', ')}` },
+      { status: 400 },
+    )
   }
 
   const { orgName, groupName, template, modoIgreja } = parsed.data
   const service = createServiceClient()
 
-  // Rate limit check (DB-based, works on serverless)
   const allowed = await checkSetupRateLimit(service, user.id)
   if (!allowed) {
     return NextResponse.json(
@@ -54,27 +65,38 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Step 1: create organization
   const { data: org, error: orgError } = await service
     .from('organization')
     .insert({ name: orgName })
     .select()
     .single()
 
-  if (orgError) {
-    return NextResponse.json({ error: 'Erro ao criar organização' }, { status: 500 })
+  if (orgError || !org) {
+    console.error('[setup] org insert error:', orgError?.code, orgError?.message, orgError?.details)
+    return NextResponse.json(
+      { error: `Erro ao criar organização (${orgError?.code ?? 'desconhecido'}: ${orgError?.message ?? 'sem dados'})` },
+      { status: 500 },
+    )
   }
 
+  // Step 2: create group
   const { data: group, error: groupError } = await service
     .from('app_group')
     .insert({ organization_id: org.id, name: groupName, template, modo_igreja: modoIgreja })
     .select()
     .single()
 
-  if (groupError) {
+  if (groupError || !group) {
+    console.error('[setup] group insert error:', groupError?.code, groupError?.message, groupError?.details)
     await service.from('organization').delete().eq('id', org.id)
-    return NextResponse.json({ error: 'Erro ao criar grupo' }, { status: 500 })
+    return NextResponse.json(
+      { error: `Erro ao criar grupo (${groupError?.code ?? 'desconhecido'}: ${groupError?.message ?? 'sem dados'})` },
+      { status: 500 },
+    )
   }
 
+  // Step 3: upsert profile
   const { error: profileError } = await service.from('profile').upsert({
     id: user.id,
     full_name: user.user_metadata?.full_name ?? '',
@@ -83,11 +105,16 @@ export async function POST(request: NextRequest) {
   })
 
   if (profileError) {
+    console.error('[setup] profile upsert error:', profileError.code, profileError.message, profileError.details)
     await service.from('app_group').delete().eq('id', group.id)
     await service.from('organization').delete().eq('id', org.id)
-    return NextResponse.json({ error: 'Erro ao criar perfil' }, { status: 500 })
+    return NextResponse.json(
+      { error: `Erro ao criar perfil (${profileError.code ?? 'desconhecido'}: ${profileError.message ?? 'sem dados'})` },
+      { status: 500 },
+    )
   }
 
+  // Step 4: create membership
   const { error: memberError } = await service.from('membership').insert({
     user_id: user.id,
     group_id: group.id,
@@ -98,9 +125,13 @@ export async function POST(request: NextRequest) {
   })
 
   if (memberError) {
+    console.error('[setup] membership insert error:', memberError.code, memberError.message, memberError.details)
     await service.from('app_group').delete().eq('id', group.id)
     await service.from('organization').delete().eq('id', org.id)
-    return NextResponse.json({ error: 'Erro ao criar membro' }, { status: 500 })
+    return NextResponse.json(
+      { error: `Erro ao criar membro (${memberError.code ?? 'desconhecido'}: ${memberError.message ?? 'sem dados'})` },
+      { status: 500 },
+    )
   }
 
   await service.from('audit_log').insert({

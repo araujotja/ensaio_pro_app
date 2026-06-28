@@ -54,13 +54,13 @@ export default async function TasksPage({
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Tarefas</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-stone-900">Tarefas</h1>
           <p className="text-sm text-stone-500 mt-0.5">{group.name}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 self-start sm:self-auto">
           <Link href={`/app/groups/${groupId}/tasks/generate`} className="btn-secondary">
             <Sparkles className="h-4 w-4" />
             Gerar com IA

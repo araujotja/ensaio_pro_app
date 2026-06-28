@@ -43,7 +43,7 @@ export default function NewRepertoirePage({
   }
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-4 md:p-6 max-w-2xl">
       <div className="mb-6 flex items-center gap-3">
         <Link
           href={`/app/groups/${groupId}/repertoire`}
@@ -54,7 +54,7 @@ export default function NewRepertoirePage({
         </Link>
       </div>
 
-      <h1 className="text-2xl font-bold text-stone-900 mb-6">Nova peça</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-stone-900 mb-6">Nova peça</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="card space-y-5">
         {/* hidden group_id */}

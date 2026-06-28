@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { AppGroup, AppRole } from '@/types/database'
+import type { AppGroup, AppRole, Nucleus, Category } from '@/types/database'
 
 export async function getOrganizationsByUser() {
   const supabase = await createClient()
@@ -65,6 +65,28 @@ export async function getMembershipForGroup(groupId: string) {
     .single()
   if (error) return null
   return data
+}
+
+export async function getNucleiByGroup(groupId: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('nucleus')
+    .select('*')
+    .eq('group_id', groupId)
+    .order('name')
+  if (error) throw error
+  return data as Nucleus[]
+}
+
+export async function getCategoriesByGroup(groupId: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('category')
+    .select('*')
+    .eq('group_id', groupId)
+    .order('name')
+  if (error) throw error
+  return data as Category[]
 }
 
 export async function getMembersByGroup(groupId: string) {

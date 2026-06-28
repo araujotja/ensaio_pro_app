@@ -78,14 +78,14 @@ export default async function MusiciansPage({
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Músicos</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-stone-900">Músicos</h1>
           {groupName && <p className="text-sm text-stone-500 mt-0.5">{groupName}</p>}
         </div>
-        <Link href={`/app/groups/${groupId}/musicians/invite`} className="btn-primary">
+        <Link href={`/app/groups/${groupId}/musicians/invite`} className="btn-primary self-start sm:self-auto">
           <UserPlus className="h-4 w-4" />
           Convidar músico
         </Link>
