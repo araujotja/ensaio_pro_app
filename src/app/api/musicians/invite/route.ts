@@ -2,7 +2,7 @@ import { randomBytes, createHash } from 'crypto'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { LEADER_ROLES } from '@/lib/constants'
+import { LEADER_ROLES, ROLE_LEVEL } from '@/lib/constants'
 
 const INVITE_TTL_MS = 24 * 60 * 60 * 1000   // 24 hours
 const INVITE_RATE_LIMIT = 10                   // max invites per hour per user
@@ -46,6 +46,16 @@ export async function POST(request: Request) {
 
   if (!membership || !(LEADER_ROLES as readonly string[]).includes(membership.role)) {
     return NextResponse.json({ error: 'Apenas líderes podem convidar músicos' }, { status: 403 })
+  }
+
+  // Prevent privilege escalation: a leader cannot invite at a higher level than their own role
+  const inviterLevel = ROLE_LEVEL[membership.role as keyof typeof ROLE_LEVEL] ?? 0
+  const inviteeLevel = ROLE_LEVEL[role] ?? 0
+  if (inviteeLevel > inviterLevel) {
+    return NextResponse.json(
+      { error: 'Não é permitido convidar para um papel com mais privilégios que o seu' },
+      { status: 403 },
+    )
   }
 
   // DB-based rate limit: max INVITE_RATE_LIMIT invitations per hour (works across serverless instances)

@@ -135,7 +135,7 @@ CREATE POLICY "repertoire: members read" ON repertoire
 DROP POLICY IF EXISTS "repertoire: members insert" ON repertoire;
 CREATE POLICY "repertoire: members insert" ON repertoire
   FOR INSERT TO authenticated
-  WITH CHECK (is_group_member(group_id));
+  WITH CHECK (is_group_leader(group_id));
 
 -- ── section ───────────────────────────────────────────────────────────────────
 
@@ -198,16 +198,17 @@ DROP POLICY IF EXISTS "task: members insert" ON task;
 CREATE POLICY "task: members insert" ON task
   FOR INSERT TO authenticated
   WITH CHECK (
-    is_group_member(group_id)
+    is_group_leader(group_id)
     AND created_by = auth.uid()
   );
 
--- Status updates (e.g., 'enviado') are written by app code for group members
+-- Only leaders/reviewers may update task status (e.g., 'ativo' → 'encerrado').
+-- Submission status changes go through the service role and don't need this policy.
 DROP POLICY IF EXISTS "task: members update status" ON task;
 CREATE POLICY "task: members update status" ON task
   FOR UPDATE TO authenticated
-  USING (is_group_member(group_id))
-  WITH CHECK (is_group_member(group_id));
+  USING (is_group_reviewer(group_id))
+  WITH CHECK (is_group_reviewer(group_id));
 
 -- ── submission ────────────────────────────────────────────────────────────────
 
