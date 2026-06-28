@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { loginSchema, type LoginInput } from '@/lib/validations'
 import { createClient } from '@/lib/supabase/client'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [serverError, setServerError] = useState('')
 
   const {
@@ -29,7 +30,10 @@ export default function LoginPage() {
       setServerError('E-mail ou senha incorretos.')
       return
     }
-    router.replace('/app')
+    const redirect = searchParams.get('redirect') ?? ''
+    // Only allow relative paths — prevent open redirect
+    const dest = redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/app'
+    router.replace(dest)
   }
 
   return (
@@ -43,9 +47,7 @@ export default function LoginPage() {
         <div className="card">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label htmlFor="email" className="label">
-                E-mail
-              </label>
+              <label htmlFor="email" className="label">E-mail</label>
               <input
                 id="email"
                 type="email"
@@ -59,9 +61,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="label">
-                Senha
-              </label>
+              <label htmlFor="password" className="label">Senha</label>
               <input
                 id="password"
                 type="password"
@@ -94,5 +94,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-stone-50">
+          <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-stone-200 border-t-amber-600" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   )
 }

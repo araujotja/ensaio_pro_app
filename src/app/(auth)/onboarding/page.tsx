@@ -127,10 +127,16 @@ function OnboardingContent() {
 
     setLoading(true)
     const supabase = createClient()
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: account.email,
       password: account.password,
-      options: { data: { full_name: account.fullName } },
+      options: {
+        data: { full_name: account.fullName },
+        // After email confirmation, bring user back to the invite URL so the token is preserved
+        ...(isInvite && {
+          emailRedirectTo: `${window.location.origin}/onboarding?token=${inviteToken}${inviteGroupId ? `&group=${inviteGroupId}` : ''}${inviteRole ? `&role=${inviteRole}` : ''}`,
+        }),
+      },
     })
     setLoading(false)
 
@@ -140,7 +146,15 @@ function OnboardingContent() {
     }
 
     if (isInvite) {
-      await handleJoin()
+      if (signUpData.session) {
+        // Email confirmation disabled — user is immediately logged in, join now
+        await handleJoin()
+      } else {
+        // Email confirmation required — user must confirm before joining
+        setError(
+          'Verifique seu e-mail para confirmar sua conta. Após confirmar, acesse o link de convite novamente para entrar no grupo.',
+        )
+      }
     } else {
       setStep('org')
     }
@@ -214,7 +228,7 @@ function OnboardingContent() {
   }
 
   const subtitle = isInvite
-    ? `Você foi convidado como ${inviteRoleLabel}`
+    ? 'Aceite o convite para entrar no grupo'
     : isAuthed
       ? 'Configure sua organização e grupo'
       : 'Crie sua conta em 3 passos'
@@ -268,9 +282,11 @@ function OnboardingContent() {
           {/* Invite banner */}
           {isInvite && (
             <div className="mb-4 rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-              Você foi convidado para participar do grupo como{' '}
-              <span className="font-semibold">{inviteRoleLabel}</span>.
-              {!isAuthed && ' Crie sua conta abaixo para continuar.'}
+              <p className="font-semibold mb-0.5">Você foi convidado para um grupo musical!</p>
+              <p>
+                Você entrará como <span className="font-semibold">{inviteRoleLabel}</span>.
+                {!isAuthed && ' Crie sua conta abaixo para aceitar o convite.'}
+              </p>
             </div>
           )}
 
@@ -440,7 +456,9 @@ function OnboardingContent() {
             <>
               Já tem conta?{' '}
               <a
-                href={`/login?redirect=/onboarding?group=${inviteGroupId}&role=${inviteRole}${inviteToken ? `&token=${inviteToken}` : ''}`}
+                href={`/login?redirect=${encodeURIComponent(
+                  `/onboarding?token=${inviteToken}${inviteGroupId ? `&group=${inviteGroupId}` : ''}${inviteRole ? `&role=${inviteRole}` : ''}`,
+                )}`}
                 className="font-medium text-amber-600 hover:text-amber-700"
               >
                 Entrar
